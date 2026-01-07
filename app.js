@@ -1,12 +1,29 @@
 
 
 const readline = require('readline')
-const { exec } = require('child_process')
+const { exec, spawn } = require('child_process')
+const os = require('os')
 
-const pbcopy = data => {
-    const proc = require('child_process').spawn('pbcopy')
-    proc.stdin.write(data)
-    proc.stdin.end()
+const isMacOS = () => os.platform() === 'darwin'
+
+// const pbcopyBinary = isMacOS() ? 'pbcopy' : '/usr/bin/xclip -selection clipboard'
+
+const pbcopy = (data = '') => {
+    let proc
+    if (isMacOS()) {
+        proc = require('child_process').spawn(pbcopyBinary)
+        proc.stdin.write(data)
+        proc.stdin.end()
+        return
+    }
+    // const proc = require('child_process').spawn('pbcopy')
+    proc = spawn('xclip', ['-selection', 'clipboard'], {
+        detached: true, // Allows the child process to run independently of the parent
+        stdio: ['pipe', 'ignore', 'ignore'] // Pipe stdin, ignore stdout and stderr
+    })
+    proc.stdin.end(data)
+    // Unreference the child process to allow the Node.js script to exit normally
+    return proc.unref()
 }
 
 const rl = readline.createInterface({
